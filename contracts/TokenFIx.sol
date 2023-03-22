@@ -21,6 +21,11 @@ contract TokenFix is ReentrancyGuard {
         admin = _admin;
     }
 
+    modifier onlyAdmin() {
+        require(msg.sender == admin, "!Admin");
+        _;
+    }
+
     function swap(uint256 swapAmount) public nonReentrant {
         swapInternal(swapAmount);
     }
@@ -33,7 +38,9 @@ contract TokenFix is ReentrancyGuard {
             revert("Swap amount exceeds balance");
         }
 
-        userBalance = userBalance - swapAmount;
+        unchecked{
+            userBalance = userBalance - swapAmount;
+        }
 
         oldToken.safeTransferFrom(msg.sender, address(this), swapAmount);
 
@@ -44,21 +51,18 @@ contract TokenFix is ReentrancyGuard {
 
     //**ADMIN FUNCTIONS**
 
-    function _setAdmin(address _newAdmin) public {
-        require(msg.sender == admin, "Only the admin may update the admin");
+    function _setAdmin(address _newAdmin) public onlyAdmin {
         address oldAdmin = admin;
         admin = _newAdmin;
-        emit adminUpdated(oldAdmin, admin);
+        emit adminUpdated(oldAdmin, _newAdmin);
     }
 
-    function _adminTransferAll() public {
-        require(msg.sender == admin, "Only the admin may transfer tokens out");
+    function _adminTransferAll() public onlyAdmin {
         uint256 amount = newToken.balanceOf(address(this));
         newToken.safeTransferFrom(address(this), msg.sender, amount);
     }
 
-    function _adminTransfer(uint256 amount) public {
-        require(msg.sender == admin, "Only the admin may transfer tokens out");
+    function _adminTransfer(uint256 amount) public onlyAdmin {
         newToken.safeTransferFrom(address(this), msg.sender, amount);
     }
 }
